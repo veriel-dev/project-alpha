@@ -1,17 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDrag } from 'react-dnd';
 import { ComponentConfig } from '@web-builder/shared/src/types/component';
 
 export const DraggableComponentItem: React.FC<{
   componentType: ComponentConfig;
 }> = ({ componentType }) => {
+  const [isDraggingState, setIsDraggingState] = useState(false);
+
+  // Set up drag behavior with the correct API usage
   const [{ isDragging }, drag] = useDrag({
     type: 'NEW_COMPONENT',
-    item: { componentType: componentType.type },
+    item: () => {
+      // Set dragging state when drag starts
+      setIsDraggingState(true);
+      return { componentType: componentType.type };
+    },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
+    end: () => {
+      // Clean up dragging state when drag ends
+      setIsDraggingState(false);
+    }
   });
+
+  // Use the dragging state from both useDrag hook and our own state
+  // This helps ensure we see proper UI feedback even if the drag event
+  // isn't cleaned up properly (which can happen in some edge cases)
+  const isItemDragging = isDragging || isDraggingState;
 
   // Map the icon name to an SVG icon
   const renderIcon = () => {
@@ -63,18 +79,31 @@ export const DraggableComponentItem: React.FC<{
 
   return (
     <div
-      ref={(instance) => {
-        if (instance) {
-          drag(instance);
-        }
-      }}
-      className={`component-item ${isDragging ? 'dragging' : ''}`}
-      title={`Arrastrar ${componentType.label}`}
+      ref={(instance) => { if (instance) drag(instance); }}
+      className={`component-item ${isItemDragging ? 'dragging' : ''}`}
+      title={`Drag to add ${componentType.label}`}
     >
       <div className="component-icon">
         {renderIcon()}
       </div>
       <div className="component-label">{componentType.label}</div>
+
+      {/* Optional description or usage hint */}
+      {componentType.description && (
+        <div className="component-description">
+          {componentType.description}
+        </div>
+      )}
+
+      {/* Show a drag handle to make it more obvious that items are draggable */}
+      <div className="drag-handle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="8" cy="8" r="1"></circle>
+          <circle cx="8" cy="16" r="1"></circle>
+          <circle cx="16" cy="8" r="1"></circle>
+          <circle cx="16" cy="16" r="1"></circle>
+        </svg>
+      </div>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { ComponentRenderer } from './ComponentRenderer';
 import { builder } from '../../core/builder/Builder';
@@ -7,9 +7,35 @@ import { Component } from '@web-builder/shared/src/types/component';
 export const EditorCanvas: React.FC<{
   rootComponent: Component;
   onSelectComponent: (component: Component) => void;
-}> = ({ rootComponent, onSelectComponent }) => {
+  selectedComponent?: Component | null;
+}> = ({ rootComponent, onSelectComponent, selectedComponent }) => {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
+  // Update canvas dimensions when window resizes
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      if (canvasRef.current) {
+        setCanvasSize({
+          width: canvasRef.current.clientWidth,
+          height: canvasRef.current.clientHeight
+        });
+      }
+    };
+
+    // Initial size calculation
+    updateCanvasSize();
+
+    // Listen for resize events
+    window.addEventListener('resize', updateCanvasSize);
+
+    return () => {
+      window.removeEventListener('resize', updateCanvasSize);
+    };
+  }, []);
+
   // Set up drop target for the canvas
-  const [{ isOver }, drop] = useDrop({
+  const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'NEW_COMPONENT',
     drop: (item: { componentType: string }, monitor) => {
       // Only handle drop if it's directly on the canvas, not on a child component
@@ -17,12 +43,18 @@ export const EditorCanvas: React.FC<{
         return;
       }
 
-      // Create and add a new component
+      // Create a new component of the dropped type
       const newComponent = builder.createComponent(item.componentType);
+
       if (newComponent && rootComponent.children) {
+        // Add the new component to the root component's children
         rootComponent.children.push(newComponent);
-        // Trigger update
+
+        // Trigger update of the UI
         onSelectComponent(rootComponent);
+
+        // Select the new component
+        setTimeout(() => onSelectComponent(newComponent), 100);
       }
     },
     collect: (monitor) => ({
@@ -35,7 +67,13 @@ export const EditorCanvas: React.FC<{
   if (!rootComponent.children || rootComponent.children.length === 0) {
     return (
       <div
-        ref={drop as unknown as React.Ref<HTMLDivElement>}
+        ref={(node) => {
+          // Combine refs
+          drop(node);
+          if (canvasRef && 'current' in canvasRef) {
+            canvasRef.current = node;
+          }
+        }}
         className={`editor-canvas empty ${isOver ? 'drop-target' : ''}`}
       >
         <div className="canvas-placeholder">
@@ -44,7 +82,7 @@ export const EditorCanvas: React.FC<{
             <line x1="12" y1="8" x2="12" y2="16"></line>
             <line x1="8" y1="12" x2="16" y2="12"></line>
           </svg>
-          <p>Arrastra componentes aquí para comenzar a construir tu página</p>
+          <p>Drag components from the panel and drop here to start building your page</p>
         </div>
       </div>
     );
@@ -52,11 +90,30 @@ export const EditorCanvas: React.FC<{
 
   // Render the component tree
   return (
-    <div className="editor-canvas" ref={drop as unknown as React.Ref<HTMLDivElement>}>
+    <div
+      className="editor-canvas"
+      ref={(node) => {
+        // Combine refs
+        drop(node);
+        if (canvasRef && 'current' in canvasRef) {
+          canvasRef.current = node;
+        }
+      }}
+    >
       <ComponentRenderer
         component={rootComponent}
         onSelectComponent={onSelectComponent}
+        isSelected={selectedComponent?.id === rootComponent.id}
       />
+
+      {/* Visual guide for when drop is active */}
+      {isOver && canDrop && (
+        <div className="drop-indicator">
+          <div className="drop-indicator-text">
+            Drop here to add to the page
+          </div>
+        </div>
+      )}
     </div>
   );
 };

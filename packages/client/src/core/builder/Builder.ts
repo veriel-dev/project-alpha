@@ -1,4 +1,7 @@
-
+import { Component, ComponentConfig } from "@web-builder/shared/src/types/component";
+import { Page } from "@web-builder/shared/src/types/page";
+import { BuilderContext } from "@web-builder/shared/src/types/builder";
+import { Plugin } from "@web-builder/shared/src/types/plugin";
 
 export class WebBuilder implements BuilderContext {
   private components: Map<string, ComponentConfig> = new Map();
