@@ -5,6 +5,8 @@ import { ComponentPalette } from './ComponentPalette';
 import { EditorCanvas } from './EditorCanvas';
 import { PropertiesPanel } from './PropertiesPanel';
 import { builder } from '../../core/builder/Builder';
+import { Page } from '@web-builder/shared/src/types/page';
+import { Component } from '@web-builder/shared/src/types/component';
 
 export const EditorApp = () => {
   const [currentPage, setCurrentPage] = useState<Page | null>(null)
@@ -55,7 +57,7 @@ export const EditorApp = () => {
     console.log('Guardando página:', currentPage);
     alert('Página guardada correctamente');
   };
-
+  console.log('currentPage', currentPage);
   if (!currentPage) {
     return <div>Cargando editor...</div>;
   }
@@ -81,10 +83,10 @@ export const EditorApp = () => {
         <div className="editor-content">
           <ComponentPalette />
 
-          <EditorCanvas
+          {/* <EditorCanvas
             rootComponent={currentPage.rootComponent}
             onSelectComponent={handleComponentSelect}
-          />
+          /> */}
 
           <PropertiesPanel
             component={selectedComponent}

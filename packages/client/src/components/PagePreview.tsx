@@ -1,5 +1,6 @@
 import React from "react";
 import { renderer } from "../core/rendering/RenderEngine";
+import { Page } from "@web-builder/shared/types/page"
 
 export const PagePreview: React.FC<{
   page: Page;

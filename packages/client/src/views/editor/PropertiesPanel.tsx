@@ -1,5 +1,6 @@
 import React from 'react'
 import { builder } from '../../core/builder/Builder';
+import { Component } from '@web-builder/shared/src/types/component';
 
 
 export const PropertiesPanel: React.FC<{
@@ -29,12 +30,11 @@ export const PropertiesPanel: React.FC<{
   }
 
   const handlePropChange = (propName: string, value: any) => {
-    // Si es una propiedad anidada (ej: 'style.color')
     if (propName.includes('.')) {
       const [parent, child] = propName.split('.');
       onUpdateProps({
         [parent]: {
-          ...component.props[parent],
+          ...(typeof component.props[parent] === 'object' ? component.props[parent] : {}),
           [child]: value,
         },
       });

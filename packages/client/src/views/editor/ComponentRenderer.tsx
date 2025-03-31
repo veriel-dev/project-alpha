@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { CSSProperties } from 'react';
 import { useDrop } from "react-dnd";
 import { builder } from '../../core/builder/Builder';
-
+import { Component } from '@web-builder/shared/types/component';
 export const ComponentRenderer: React.FC<{
   component: Component;
   onSelectComponent: (component: Component) => void;
@@ -60,7 +60,7 @@ export const ComponentRenderer: React.FC<{
           ref={drop as unknown as React.Ref<HTMLDivElement>}
           className={`editor-component editor-container ${isOver ? 'drop-target' : ''}`}
           onClick={handleClick}
-          style={component.props.style}
+          style={component.props.style as CSSProperties | undefined}
         >
           {renderChildren()}
           {component.children?.length === 0 && (

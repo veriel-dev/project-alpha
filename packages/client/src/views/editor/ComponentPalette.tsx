@@ -23,7 +23,7 @@ export const ComponentPalette: React.FC = () => {
         <div key={category} className="component-category">
           <h3>{category}</h3>
           <div className="component-list">
-            {components.map(comp => (
+            {(components as typeof componentTypes).map(comp => (
               <DraggableComponentItem key={comp.type} componentType={comp} />
             ))}
           </div>

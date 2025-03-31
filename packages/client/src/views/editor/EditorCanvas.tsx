@@ -1,8 +1,8 @@
 // src/editor/EditorCanvas.tsx
 import React from 'react';
-import { useDrop } from 'react-dnd';
-import { builder } from '../core/Builder';
+
 import { ComponentRenderer } from './ComponentRenderer';
+import { Component } from '@web-builder/shared/src/types/component';
 
 export const EditorCanvas: React.FC<{
   rootComponent: Component;
@@ -10,7 +10,7 @@ export const EditorCanvas: React.FC<{
 }> = ({ rootComponent, onSelectComponent }) => {
   return (
     <div className="editor-canvas">
-      <ComponentRenderer 
+      <ComponentRenderer
         component={rootComponent}
         onSelectComponent={onSelectComponent}
       />
