@@ -1,6 +1,6 @@
 
 import { builder } from "../../../core/builder/Builder";
-import "../../../../../../src/types";
+import { ComponentConfig } from "@web-builder/shared/src/types/component";
 // Container Component Config
 export const ContainerComponentConfig: ComponentConfig = {
   type: 'container',

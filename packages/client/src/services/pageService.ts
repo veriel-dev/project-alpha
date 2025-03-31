@@ -1,3 +1,4 @@
+import { Page } from '@web-builder/shared/src/types/page';
 import { api } from './api';
 
 // Servicio para gestionar páginas
