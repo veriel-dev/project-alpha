@@ -1,34 +1,54 @@
-import React, { useEffect, useState, useCallback } from 'react';
+// src/components/editor/EditorApp.tsx
+import React, { useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ComponentPalette } from './ComponentPalette';
+// import { ComponentPalette } from './ComponentPalette';
+import { ComponentPalette } from '../../components/componentPalette/ComponentPalette';
 import { EditorCanvas } from './EditorCanvas';
-import { PropertiesPanel } from './PropertiesPanel';
-import { builder } from '../../core/builder/Builder';
-import { useToast } from '../../context/ToastContext';
-import { Page } from '@web-builder/shared/src/types/page';
-import { Component } from '@web-builder/shared/src/types/component';
-import { pageService } from '../../services/pageService';
-import { registerBaseComponents } from '../../components/baseComponents/config';
 import { PagePreview } from '../../components/PagePreview';
+import useEditorStore from '../../stores/editorStore';
+import { registerBaseComponents } from '../../components/baseComponents/config';
+import { Component } from '@web-builder/shared/src/types';
+import useToast from '../../stores/toastStore';
+import { PropertiesPanel } from '../../components/propertiesPanels/PropertiesPanel';
 
 export const EditorApp: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState<Page | null>(null);
-  const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'components' | 'properties'>('components');
-  const [previewMode, setPreviewMode] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { addToast } = useToast();
 
-  // Track unsaved changes
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  // Obtener estado y acciones del store
+  const {
+    currentPage,
+    selectedComponent,
+    loading,
+    saving,
+    activeTab,
+    previewMode,
+    isSidebarOpen,
+    hasUnsavedChanges,
 
-  // Warn user before leaving if there are unsaved changes
+    selectComponent,
+    setActiveTab,
+    updateComponent,
+    updatePageTitle,
+    togglePreviewMode,
+    toggleSidebar,
+    loadPage,
+    savePage,
+    publishPage,
+  } = useEditorStore();
+
+  // Efecto para cargar la página
+  useEffect(() => {
+    loadPage(id).catch(error => {
+      console.error('Error loading page:', error);
+      addToast('error', 'Error loading the page');
+    });
+  }, [id, loadPage, addToast]);
+
+  // Efecto para preguntar antes de salir con cambios sin guardar
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
@@ -37,247 +57,48 @@ export const EditorApp: React.FC = () => {
         return '';
       }
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [hasUnsavedChanges]);
 
-  // Ensure components are registered
   useEffect(() => {
     registerBaseComponents();
   }, []);
 
-  // Helper function to create a new page
-  const createNewPage = useCallback(() => {
-    return {
-      id: 'page_' + Date.now(),
-      title: 'New Page',
-      slug: 'new-page-' + Date.now(),
-      status: 'draft',
-      rootComponent: builder.createComponent('container', {
-        style: {
-          minHeight: '100vh',
-          padding: '20px',
-          backgroundColor: '#ffffff',
-        },
-      })!,
-      metadata: {
-        description: 'A page created with Web Builder',
-        keywords: 'web, builder',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    };
-  }, []);
+  // Métodos de manejo de eventos pero ahora más simples y delegando al store
+  const handleComponentSelect = (component: Component) => {
+    selectComponent(component);
+  };
 
-  // Load or create page
-  useEffect(() => {
-    const loadPage = async () => {
-      try {
-        setLoading(true);
+  const handleUpdateComponent = (updatedProps: Record<string, unknown>) => {
+    updateComponent(updatedProps);
+  };
 
-        let page: Page;
+  const handleTitleChange = (newTitle: string) => {
+    updatePageTitle(newTitle);
+  };
 
-        if (id) {
-          // Load existing page
-          try {
-            page = await pageService.getPageById(id);
-          } catch (error) {
-            console.error('Error loading page:', error);
-            addToast('error', 'Page not found or could not be loaded');
-
-            // Create a new page as fallback
-            page = createNewPage();
-          }
-        } else {
-          // Create new page
-          page = createNewPage();
-        }
-
-        setCurrentPage(page);
-        builder.setCurrentPage(page);
-        setHasUnsavedChanges(false);
-      } catch (error) {
-        console.error('Error in loadPage:', error);
-        addToast('error', 'Error loading the page');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPage();
-  }, [id, addToast, createNewPage]);
-
-  // Select component
-  const handleComponentSelect = useCallback((component: Component) => {
-    setSelectedComponent(component);
-    // Switch to properties tab automatically when a component is selected on mobile
-    if (window.innerWidth < 768) {
-      setActiveTab('properties');
-    }
-  }, []);
-
-  // Update component properties
-  const handleUpdateComponent = useCallback((updatedProps: Record<string, unknown>) => {
-    if (!selectedComponent) return;
-
-    // Update component props
-    selectedComponent.props = {
-      ...selectedComponent.props,
-      ...updatedProps,
-    };
-
-    // Force state update
-    setSelectedComponent({ ...selectedComponent });
-
-    if (currentPage) {
-      setCurrentPage({ ...currentPage });
-      setHasUnsavedChanges(true);
-    }
-  }, [selectedComponent, currentPage]);
-
-  // Handle page title change
-  const handleTitleChange = useCallback((newTitle: string) => {
-    if (!currentPage) return;
-
-    // Update slug based on title
-    const slug = newTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-
-    setCurrentPage({
-      ...currentPage,
-      title: newTitle,
-      slug,
-    });
-
-    setHasUnsavedChanges(true);
-  }, [currentPage]);
-
-  // Save page
-  const handleSavePage = useCallback(async () => {
-    if (!currentPage) return;
-
+  const handleSavePage = async () => {
     try {
-      setSaving(true);
-
-      // Update page metadata
-      const updatedPage = {
-        ...currentPage,
-        metadata: {
-          ...currentPage.metadata,
-          updatedAt: new Date().toISOString(),
-        }
-      };
-
-      if (id) {
-        await pageService.updatePage(id, updatedPage);
-        setCurrentPage(updatedPage);
-        addToast('success', 'Page saved successfully');
-      } else {
-        const savedPage = await pageService.createPage(updatedPage);
-        setCurrentPage(savedPage);
-
-        // Update URL with new page ID without reloading
-        navigate(`/editor/${savedPage.id}`, { replace: true });
-
-        addToast('success', 'Page created successfully');
-      }
-
-      setHasUnsavedChanges(false);
+      await savePage(navigate);
+      addToast('success', 'Page saved successfully');
     } catch (error) {
       console.error('Error saving page:', error);
       addToast('error', 'Error saving the page. Please try again.');
-    } finally {
-      setSaving(false);
     }
-  }, [currentPage, id, addToast, navigate]);
+  };
 
-  // Toggle preview mode
-  const handleTogglePreview = useCallback(() => {
-    setPreviewMode(prev => !prev);
-  }, []);
-
-  // Publish page
-  const handlePublish = useCallback(async () => {
-    if (!currentPage) return;
-
+  const handlePublish = async () => {
     try {
-      setSaving(true);
-
-      // Update status to published
-      const updatedPage = {
-        ...currentPage,
-        status: 'published',
-        metadata: {
-          ...currentPage.metadata,
-          publishedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-      };
-
-      if (id) {
-        await pageService.updatePage(id, updatedPage);
-        setCurrentPage(updatedPage);
-        addToast('success', 'Page published successfully');
-      } else {
-        // Save first, then publish
-        const savedPage = await pageService.createPage({
-          ...updatedPage,
-          id: 'page_' + Date.now(), // Ensure we have an ID
-        });
-
-        setCurrentPage(savedPage);
-        navigate(`/editor/${savedPage.id}`, { replace: true });
-
-        addToast('success', 'Page created and published');
-      }
-
-      setHasUnsavedChanges(false);
+      await publishPage(navigate);
+      addToast('success', 'Page published successfully');
     } catch (error) {
       console.error('Error publishing page:', error);
       addToast('error', 'Error publishing the page. Please try again.');
-    } finally {
-      setSaving(false);
     }
-  }, [currentPage, id, addToast, navigate]);
-
-  // Toggle sidebar on mobile
-  const toggleSidebar = useCallback(() => {
-    setIsSidebarOpen(prev => !prev);
-  }, []);
-
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Save on Ctrl+S / Cmd+S
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        handleSavePage();
-      }
-
-      // Toggle preview on Ctrl+P / Cmd+P
-      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-        e.preventDefault();
-        handleTogglePreview();
-      }
-
-      // Escape from preview mode
-      if (e.key === 'Escape' && previewMode) {
-        setPreviewMode(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handleSavePage, handleTogglePreview, previewMode]);
+  };
 
   // Loading state
   if (loading) {
@@ -313,7 +134,7 @@ export const EditorApp: React.FC = () => {
     return (
       <div className="preview-mode">
         <div className="preview-header">
-          <button onClick={handleTogglePreview} className="preview-close-btn">
+          <button onClick={togglePreviewMode} className="preview-close-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -361,7 +182,7 @@ export const EditorApp: React.FC = () => {
           <div className="editor-actions">
             <button
               className="preview-button"
-              onClick={handleTogglePreview}
+              onClick={togglePreviewMode}
               title="Preview (Ctrl+P)"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -434,7 +255,8 @@ export const EditorApp: React.FC = () => {
           <div
             className="component-palette"
             style={{
-              display: window.innerWidth < 768 ? (activeTab === 'components' ? 'block' : 'none') : 'block'
+              display: window.innerWidth < 768 ? (activeTab === 'components' ? 'block' : 'none') : 'block',
+              width: isSidebarOpen ? 'auto' : '0'
             }}
           >
             <ComponentPalette />

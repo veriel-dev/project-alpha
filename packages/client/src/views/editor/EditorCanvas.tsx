@@ -1,59 +1,27 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { useDrop } from 'react-dnd';
-import { ComponentRenderer } from './ComponentRenderer';
 import { builder } from '../../core/builder/Builder';
 import { Component } from '@web-builder/shared/src/types/component';
+import { ComponentRenderer } from '../../components/componentRenderer';
 
 export const EditorCanvas: React.FC<{
   rootComponent: Component;
   onSelectComponent: (component: Component) => void;
   selectedComponent?: Component | null;
 }> = ({ rootComponent, onSelectComponent, selectedComponent }) => {
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-
-  // Update canvas dimensions when window resizes
-  useEffect(() => {
-    const updateCanvasSize = () => {
-      if (canvasRef.current) {
-        setCanvasSize({
-          width: canvasRef.current.clientWidth,
-          height: canvasRef.current.clientHeight
-        });
-      }
-    };
-
-    // Initial size calculation
-    updateCanvasSize();
-
-    // Listen for resize events
-    window.addEventListener('resize', updateCanvasSize);
-
-    return () => {
-      window.removeEventListener('resize', updateCanvasSize);
-    };
-  }, []);
 
   // Set up drop target for the canvas
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: 'NEW_COMPONENT',
     drop: (item: { componentType: string }, monitor) => {
-      // Only handle drop if it's directly on the canvas, not on a child component
       if (monitor.didDrop()) {
         return;
       }
-
-      // Create a new component of the dropped type
       const newComponent = builder.createComponent(item.componentType);
 
       if (newComponent && rootComponent.children) {
-        // Add the new component to the root component's children
         rootComponent.children.push(newComponent);
-
-        // Trigger update of the UI
         onSelectComponent(rootComponent);
-
-        // Select the new component
         setTimeout(() => onSelectComponent(newComponent), 100);
       }
     },
@@ -67,13 +35,7 @@ export const EditorCanvas: React.FC<{
   if (!rootComponent.children || rootComponent.children.length === 0) {
     return (
       <div
-        ref={(node) => {
-          // Combine refs
-          drop(node);
-          if (canvasRef && 'current' in canvasRef) {
-            canvasRef.current = node;
-          }
-        }}
+        ref={drop as unknown as React.LegacyRef<HTMLDivElement>}
         className={`editor-canvas empty ${isOver ? 'drop-target' : ''}`}
       >
         <div className="canvas-placeholder">
@@ -92,13 +54,7 @@ export const EditorCanvas: React.FC<{
   return (
     <div
       className="editor-canvas"
-      ref={(node) => {
-        // Combine refs
-        drop(node);
-        if (canvasRef && 'current' in canvasRef) {
-          canvasRef.current = node;
-        }
-      }}
+      ref={drop as unknown as React.LegacyRef<HTMLDivElement>}
     >
       <ComponentRenderer
         component={rootComponent}

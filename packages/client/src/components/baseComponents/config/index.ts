@@ -38,6 +38,15 @@ export const ContainerComponentConfig: ComponentConfig = {
   ],
   allowChildren: true,
 }
+export const RootContainerComponentConfig: ComponentConfig = {
+  type: 'container-root',
+  label: 'Contenedor',
+  category: 'main',
+  icon: 'box',
+  defaultProps: {},
+  propEditors: [],
+  allowChildren: true,
+}
 export const TextComponentConfig: ComponentConfig = {
   type: 'text',
   label: 'Texto',
@@ -143,4 +152,5 @@ export function registerBaseComponents() {
   builder.registerComponent(ContainerComponentConfig);
   builder.registerComponent(TextComponentConfig);
   builder.registerComponent(ImageComponentConfig);
+  builder.registerComponent(RootContainerComponentConfig);
 }

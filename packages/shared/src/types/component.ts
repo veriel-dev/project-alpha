@@ -17,7 +17,7 @@ export interface Component<T = Record<string, unknown>> {
  * Configuration for a component type in the editor
  */
 export interface ComponentConfig<T = Record<string, unknown>> {
-  description: any;
+  description?: string;
   type: string;
   label: string;
   category: string;
@@ -31,12 +31,12 @@ export interface ComponentConfig<T = Record<string, unknown>> {
  * Configuration for property editors in the component panel
  */
 export interface PropEditor<T = unknown> {
-  description: any;
-  max: string | number | undefined;
-  min: string | number | undefined;
-  step: number;
-  required: any;
-  group: string;
+  description?: string;
+  max?: string | number | undefined;
+  min?: string | number | undefined;
+  step?: number;
+  required?: boolean;
+  group?: string;
   propName: string;
   label: string;
   editorType: 'text' | 'number' | 'select' | 'color' | 'image' | 'toggle';

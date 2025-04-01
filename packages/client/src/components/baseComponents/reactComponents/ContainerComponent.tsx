@@ -6,10 +6,11 @@ export const ContainerComponent: React.FC<{
   className?: string;
   children?: React.ReactNode;
 }> = (props) => {
+  console.log({ props })
   return (
-    <div 
-      id={props.id} 
-      className={`wb-container ${props.className || ''}`} 
+    <div
+      id={props.id}
+      className={`wb-container ${props.className || ''}`}
       style={props.style}
     >
       {props.children}

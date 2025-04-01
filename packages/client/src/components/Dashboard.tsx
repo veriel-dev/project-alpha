@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { pageService } from '../services/pageService';
-import { useToast } from '../context/ToastContext';
+import useToast from '../stores/toastStore';
+import { Page } from '@web-builder/shared/src/types';
 
 const Dashboard: React.FC = () => {
-  const [recentPages, setRecentPages] = useState<any[]>([]);
+  const [recentPages, setRecentPages] = useState<Page[]>([]);
   const [stats, setStats] = useState({
     totalPages: 0,
     publishedPages: 0,
@@ -32,6 +33,7 @@ const Dashboard: React.FC = () => {
           draftPages: pages.filter(p => p.status === 'draft').length,
         });
       } catch (error) {
+        console.error('Error al cargar el dashboard:', error);
         addToast('error', 'Error al cargar el dashboard');
       } finally {
         setLoading(false);
